@@ -1,7 +1,7 @@
 import numpy as np
 import random
 class QAgent:
-    def __init__ ( self , n , alpha =0.1 , gamma =0.9 , epsilon =1.0 , decay =0.995 ,
+    def __init__ ( self , n , alpha =0.1 , gamma =0.9 , epsilon =1.0 , decay =0.995,
 min_epsilon =0.01):
         self.n = n # Number of cities
         self.alpha = alpha # Learning rate
@@ -61,3 +61,18 @@ def train_agent(agent:QAgent, distance_matrix:list[list[float]], epoches=1000):
             print(f"Epoch {epoch}, Total Reward: {total_reward}, Epsilon: {agent.epsilon}")
         
     return agent
+
+def getSolution(agent, start_city=0):
+    state = start_city
+    unvisited = list(range(len(agent.q_table)))
+    unvisited.remove(start_city)
+    path = [start_city+1]  # Store cities in 1-based indexing   
+    
+    while unvisited:
+        action = agent.select_action(state, unvisited)
+        path.append(action+1)
+        unvisited.remove(action)
+        state = action
+    
+    path.append(-1)  # Return to starting city
+    return path
