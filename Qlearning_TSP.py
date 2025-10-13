@@ -1,3 +1,4 @@
+import QlearningAgent as ql
 def calculateDistance(city1, city2):
     """
     Calculate the Pseudo-euclidean distance between two cities.
@@ -56,14 +57,36 @@ def calculateDistanceMatrix(cities:dict[int,tuple[int,int]])->list[list[float]]:
                 distance_matrix[i-1][j-1] = 0.0
 
     return distance_matrix
+def getSolution(agent, start_city=0):
+    state = start_city
+    unvisited = list(range(len(agent.q_table)))
+    unvisited.remove(start_city)
+    path = [start_city+1]  # Store cities in 1-based indexing   
+    
+    while unvisited:
+        action = agent.select_action(state, unvisited)
+        path.append(action+1)
+        unvisited.remove(action)
+        state = action
+    
+    path.append(-1)  # Return to starting city
+    return path
+
 def main():
     cities = readInputFile("input.txt")
     matrix = calculateDistanceMatrix(cities)
-    print(f"Matrix: {matrix}")
+    
+    # Get sample distance for verification
     city1 = cities[1]
     city2 = cities[2]
-    print(city1, city2)
+    print(f"Sample cities: {city1}, {city2}")
     distance = calculateDistance(city1, city2)
     print(f"Distance between city 1 and city 2: {distance}")
+    
+    agent = ql.QAgent(n=len(cities))
+    trained_agent = ql.train_agent(agent, matrix, epoches=1000)
+    solution_path = getSolution(trained_agent)
+    print(f"Solution Path: {solution_path}")
+
 if __name__ == "__main__":
     main()
