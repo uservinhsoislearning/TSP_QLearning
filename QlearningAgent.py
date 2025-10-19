@@ -14,16 +14,10 @@ class QAgent:
         self.q_table = np.zeros((n, n))  # Q[current, next]
 
     def select_action(self, state, unvisited, greedy=False):
-        """If greedy=True choose argmax (used for policy extraction)."""
-        if greedy or random.random() > self.epsilon:
-            # exploit: choose best among unvisited
-            q_values = [self.q_table[state, a] for a in unvisited]
-            max_q = max(q_values)
-            max_actions = [a for a in unvisited if self.q_table[state, a] == max_q]
-            return random.choice(max_actions)
-        else:
-            # explore
-            return random.choice(unvisited)
+        if not greedy and random.uniform(0, 1) < self.epsilon:
+            return random.choice(list(unvisited))
+        else :
+            return max(unvisited,key = lambda x : self.q_table[state,x])
 
     def update_q_value(self, state, action, reward, next_state, unvisited):
         # compute max future Q (0 if terminal)
@@ -31,8 +25,8 @@ class QAgent:
             max_future_q = max(self.q_table[next_state, a] for a in unvisited)
         else:
             max_future_q = 0
-        # update always (fix: not indented under else)
-        self.q_table[state, action] += self.alpha * (reward + self.gamma * max_future_q - self.q_table[state, action])
+        # Q-learning formula
+        self.q_table[state, action] += self.alpha*(reward + self.gamma * max_future_q - self.q_table[state, action])
 
     def decay_epsilon(self):
         self.epsilon = max(self.min_epsilon, self.epsilon * self.decay)
@@ -41,16 +35,16 @@ class QAgent:
 def train_agent(agent: QAgent, distance_matrix, epoches=1000):
     n = len(distance_matrix)
     for epoch in range(epoches):
-        start = random.randint(0, n - 1)         # random start
+        start = 0 # fixed start city (at 0)
         state = start
         # unvisited: all cities except start
-        unvisited = [i for i in range(n) if i != start]
+        unvisited = [i for i in range(1,n)]
         path = [state]
         total_reward = 0.0
 
         while unvisited:
             action = agent.select_action(state, unvisited)
-            # reward: negative distance; normalized
+            # reward: negative distance
             reward = -distance_matrix[state][action]
             next_state = action
             # remove action from unvisited
@@ -68,7 +62,7 @@ def train_agent(agent: QAgent, distance_matrix, epoches=1000):
 
         agent.decay_epsilon()
 
-        if epoch % 100 == 0:
+        if epoch % 10 == 0:
             print(f"Epoch {epoch}, Total Reward: {total_reward:.2f}, Epsilon: {agent.epsilon:.4f}")
 
     return agent

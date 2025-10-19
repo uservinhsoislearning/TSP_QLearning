@@ -16,7 +16,7 @@ def readTour(filename):
     return cities
 def calculateTourLength(tour, distance_matrix):
     total_length = 0
-    for i in range(len(tour) - 1):
+    for i in range(len(tour) - 2):
         total_length += distance_matrix[tour[i] - 1][tour[i + 1] - 1]
     # Add distance to return to the starting city
     total_length += distance_matrix[tour[-2] - 1][0]
@@ -28,6 +28,6 @@ def main():
     tour_length = calculateTourLength(tour, distance_matrix)
     print(f"Tour: {tour}")
     print(f"Tour Length: {tour_length}")
-    # This is just for verification purpose (min tour length should be 11292)
+
 if __name__ == "__main__":
     main()

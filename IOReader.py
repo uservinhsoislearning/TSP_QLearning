@@ -9,7 +9,7 @@ def calculateDistance(city1, city2):
     Returns:
     float: Pseudo-euclidean distance between the two cities.
     """
-    return round((((city1[0] - city2[0])**2 + (city1[1] - city2[1])**2)/10.0)**0.5)
+    return round((((city1[0] - city2[0])**2 + (city1[1] - city2[1])**2))**0.5)
 def readInputFile(filename:str)->dict[tuple[int,int]]:
     """
     Read city coordinates from a file.
