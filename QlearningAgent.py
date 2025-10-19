@@ -1,49 +1,59 @@
+# qlearning.py — corrected minimal version
+
 import numpy as np
 import random
+
 class QAgent:
-    def __init__ ( self , n , alpha =0.1 , gamma =0.9 , epsilon =1.0 , decay =0.995,
-min_epsilon =0.01):
-        self.n = n # Number of cities
-        self.alpha = alpha # Learning rate
-        self.gamma = gamma # Discount factor
-        self.epsilon = epsilon # Initial exploration rate
-        self.decay = decay # Decay factor for epsilon
-        self.min_epsilon = min_epsilon # Minimum allowed epsilon
-        self.q_table = np.zeros(( n , n )) # Q- table : each entry Q(i,j)
+    def __init__(self, n, alpha=0.1, gamma=0.9, epsilon=1.0, decay=0.995, min_epsilon=0.01):
+        self.n = n
+        self.alpha = alpha
+        self.gamma = gamma
+        self.epsilon = epsilon
+        self.decay = decay
+        self.min_epsilon = min_epsilon
+        self.q_table = np.zeros((n, n))  # Q[current, next]
 
-    def select_action(self, state, unvisited):
-        if random.uniform(0, 1) < self.epsilon:
-            return random.choice(unvisited) # Explore: random action
-        else:
-            q_values = [self.q_table[state][a] for a in unvisited]
+    def select_action(self, state, unvisited, greedy=False):
+        """If greedy=True choose argmax (used for policy extraction)."""
+        if greedy or random.random() > self.epsilon:
+            # exploit: choose best among unvisited
+            q_values = [self.q_table[state, a] for a in unvisited]
             max_q = max(q_values)
+            max_actions = [a for a in unvisited if self.q_table[state, a] == max_q]
+            return random.choice(max_actions)
+        else:
+            # explore
+            return random.choice(unvisited)
 
-            max_actions = [a for a in unvisited if self.q_table[state][a] == max_q]
-            return random.choice(max_actions) # Exploit: best action based on Q- values, randomize if there are ties
-    
     def update_q_value(self, state, action, reward, next_state, unvisited):
+        # compute max future Q (0 if terminal)
         if unvisited:
-            max_future_q = max([self.q_table[next_state][a] for a in unvisited])
-        else :
-            max_future_q = 0 # Terminal state : no future actions
+            max_future_q = max(self.q_table[next_state, a] for a in unvisited)
+        else:
+            max_future_q = 0
+        # update always (fix: not indented under else)
+        self.q_table[state, action] += self.alpha * (reward + self.gamma * max_future_q - self.q_table[state, action])
 
-            self.q_table[state,action] += self.alpha*(reward + self.gamma*max_future_q - self.q_table[state ,
-            action]) # UPdate Q-value using Bellman equation
+    def decay_epsilon(self):
+        self.epsilon = max(self.min_epsilon, self.epsilon * self.decay)
 
-    def decay_epsilon(self) :
-        self.epsilon = max(self.min_epsilon , self.epsilon * self.decay)
 
-def train_agent(agent:QAgent, distance_matrix:list[list[float]], epoches=1000):
+def train_agent(agent: QAgent, distance_matrix, epoches=1000):
+    n = len(distance_matrix)
     for epoch in range(epoches):
-        state = random.randint(0, len(distance_matrix) - 1) # Start from a random city
-        unvisited = list(range(1, len(distance_matrix))) # All cities except the starting city
-        path = [state] # Start path with the first city
-        total_reward = 0
+        start = random.randint(0, n - 1)         # random start
+        state = start
+        # unvisited: all cities except start
+        unvisited = [i for i in range(n) if i != start]
+        path = [state]
+        total_reward = 0.0
 
         while unvisited:
             action = agent.select_action(state, unvisited)
-            reward = -distance_matrix[state][action] # Negative distance as reward
+            # reward: negative distance; normalized
+            reward = -distance_matrix[state][action]
             next_state = action
+            # remove action from unvisited
             unvisited.remove(action)
 
             agent.update_q_value(state, action, reward, next_state, unvisited)
@@ -51,28 +61,31 @@ def train_agent(agent:QAgent, distance_matrix:list[list[float]], epoches=1000):
             path.append(state)
             total_reward += reward
 
-        # Return to the starting city
-        reward = -distance_matrix[state][0]
-        agent.update_q_value(state, 0, reward, 0, [])
+        # Return to the starting city (use stored start)
+        reward = -distance_matrix[state][start]
+        agent.update_q_value(state, start, reward, start, [])
         total_reward += reward
 
         agent.decay_epsilon()
-        if epoch % 10 == 0:
-            print(f"Epoch {epoch}, Total Reward: {total_reward}, Epsilon: {agent.epsilon}")
-        
+
+        if epoch % 100 == 0:
+            print(f"Epoch {epoch}, Total Reward: {total_reward:.2f}, Epsilon: {agent.epsilon:.4f}")
+
     return agent
 
+
 def getSolution(agent, start_city=0):
+    """Extract a greedy route from the learned Q-table (no exploration)."""
     state = start_city
-    unvisited = list(range(len(agent.q_table)))
-    unvisited.remove(start_city)
-    path = [start_city+1]  # Store cities in 1-based indexing   
-    
+    n = agent.q_table.shape[0]
+    unvisited = [i for i in range(n) if i != start_city]
+    path = [start_city + 1]  # 1-based for printing
+
     while unvisited:
-        action = agent.select_action(state, unvisited)
-        path.append(action+1)
+        action = agent.select_action(state, unvisited, greedy=True)  # greedy extraction
+        path.append(action + 1)
         unvisited.remove(action)
         state = action
-    
-    path.append(-1)  # Return to starting city
+
+    path.append(start_city + 1)  # return to start (1-based)
     return path

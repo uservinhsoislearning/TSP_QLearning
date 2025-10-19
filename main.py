@@ -13,14 +13,16 @@ def main():
     agent = ql.QAgent(
         n=len(cities),
         alpha=0.1,
-        gamma=0.9,
+        gamma=0.99,
         epsilon=1.0, # fixed parameter
         decay=0.995,
-        min_epsilon=0.01
+        min_epsilon=0.005
     )
+    print(f"Initial Q-table:\n{agent.q_table}")
     # Train the agent
-    num_epochs = 1000
+    num_epochs = 2000
     trained_agent = ql.train_agent(agent, matrix, epoches=num_epochs)
+    print(f"FInal Q-table:\n{agent.q_table}")
     solution_path = ql.getSolution(trained_agent)
     print(f"Solution Path: {solution_path}")
 
